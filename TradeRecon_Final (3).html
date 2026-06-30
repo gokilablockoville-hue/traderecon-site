@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TradeRecon</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1117;--s1:#161b27;--s2:#1c2130;--s3:#222840;
+  --bdr:#252d42;--bdr2:#2e3850;
+  --txt:#dde1ec;--muted:#5a6480;--muted2:#7a86a4;
+  --blue:#3b82f6;--blue-bg:rgba(59,130,246,.1);
+  --green:#22c55e;--green-bg:rgba(34,197,94,.08);--green-dim:rgba(34,197,94,.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.08);--red-dim:rgba(239,68,68,.2);
+  --orange:#f97316;--purple:#a855f7;--purple-bg:rgba(168,85,247,.1);
+  --r:10px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:13px;}
+header{background:var(--s1);border-bottom:1px solid var(--bdr);padding:0 1.5rem;display:flex;align-items:center;height:52px;gap:12px;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.logo-icon{width:28px;height:28px;background:var(--blue);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.logo-icon svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;}
+.logo-txt{font-size:15px;font-weight:700;letter-spacing:-.3px;}
+.logo-txt b{color:var(--blue);}
+.hdr-mid{flex:1;display:flex;justify-content:center;}
+.date-pill{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--bdr2);border-radius:20px;padding:5px 14px;}
+.date-pill svg{width:13px;height:13px;stroke:var(--muted2);fill:none;stroke-width:2;flex-shrink:0;}
+.date-pill input[type=date]{background:transparent;border:none;outline:none;color:var(--txt);font-size:13px;font-weight:600;cursor:pointer;color-scheme:dark;width:115px;}
+.hdr-right{display:flex;gap:8px;}
+.btn{padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--bdr2);background:var(--s2);color:var(--txt);display:inline-flex;align-items:center;gap:5px;transition:background .12s;white-space:nowrap;}
+.btn:hover{background:var(--s3);}
+.btn-run{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-run:hover{background:#2563eb;}
+.btn-run:disabled{background:#1a3260;border-color:#1a3260;color:#4060a0;cursor:not-allowed;}
+.btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff;}
+.btn-green:hover{background:#16a34a;}
+.nav-tabs{display:flex;gap:2px;background:var(--s2);padding:3px;border-radius:8px;}
+.nav-tab{padding:5px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--muted);border:none;background:transparent;transition:all .15s;}
+.nav-tab.active{background:var(--blue);color:#fff;}
+main{max-width:1440px;margin:0 auto;padding:1.25rem 1.5rem;}
+.page{display:none;}.page.active{display:block;}
+.sec{font-size:9px;font-weight:700;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr);}
+.saving-bar{display:flex;align-items:center;gap:8px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:7px;padding:8px 14px;margin-bottom:1rem;font-size:12px;color:var(--blue);}
+.overall-stat{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1rem;}
+.overall-stat .ol{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px;}
+.overall-stat .ov{font-size:20px;font-weight:700;letter-spacing:-.5px;}
+.overall-stat .os{font-size:10px;color:var(--muted2);margin-top:2px;}
+.dash-controls{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap;}
+.dash-controls input[type=date]{padding:7px 12px;background:var(--s2);border:1px solid var(--bdr2);border-radius:7px;font-size:13px;color:var(--txt);outline:none;color-scheme:dark;}
+.hist-card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem;}
+.hist-hdr{padding:.8rem 1.1rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;}
+.hist-title{font-size:12px;font-weight:600;color:var(--muted2);}
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:var(--s2);padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--bdr);white-space:nowrap;}
+thead th.center{text-align:center;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--bdr);font-size:12px;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--s2);cursor:pointer;}
+thead tr.sub-hdr th{background:#111827;font-size:8px;color:#3b4a6a;padding:4px 10px;}
+.dash-stats{display:grid;grid-template-columns:repeat(7,1fr);gap:.75rem;margin-bottom:1.25rem;}
+@media(max-width:1100px){.dash-stats{grid-template-columns:repeat(4,1fr);}}
+.dstat{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1rem;}
+.dstat .dl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px;}
+.dstat .dv{font-size:18px;font-weight:700;letter-spacing:-.5px;line-height:1.1;}
+.dstat .ds{font-size:10px;color:var(--muted2);margin-top:2px;}
+.c-blue{color:var(--blue);}.c-green{color:var(--green);}.c-red{color:var(--red);}.c-txt{color:var(--txt);}
+.brk-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+@media(max-width:900px){.brk-grid{grid-template-columns:1fr;}}
+.bpanel{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem 1.2rem;}
+.bpanel-hdr{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px;margin-bottom:.75rem;}
+.bpanel-hdr .dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
+.brow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bdr);}
+.brow:last-child{border-bottom:none;}
+.brow .bsym{font-size:12px;font-weight:600;min-width:80px;}
+.brow .bvals{display:flex;gap:8px;font-size:11px;justify-content:flex-end;}
+.ev{color:var(--red);}.iv{color:var(--green);}.dv{color:var(--orange);font-weight:700;}
+.net-bar{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1.4rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;}
+.net-bar .nl{font-size:11px;color:var(--muted2);}
+.net-bar .nv{font-size:15px;font-weight:700;}
+.net-bar .nb{font-size:11px;color:var(--orange);margin-left:14px;}
+.up-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+@media(max-width:700px){.up-grid{grid-template-columns:1fr;}}
+.up-card{background:var(--s1);border:1.5px dashed var(--bdr2);border-radius:var(--r);padding:1.25rem;text-align:center;transition:border-color .15s,background .15s;}
+.up-card.ready{border-style:solid;border-color:var(--green);}
+.up-card.dragover{border-color:var(--blue);background:var(--blue-bg);}
+.up-card input[type=file]{display:none;}
+.up-icon{font-size:26px;margin-bottom:5px;}
+.up-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;margin-bottom:6px;}
+.b-exc{background:var(--blue-bg);color:var(--blue);}
+.b-int{background:var(--purple-bg);color:var(--purple);}
+.up-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.up-sub{font-size:11px;color:var(--muted2);margin-bottom:10px;line-height:1.5;}
+.up-ok{font-size:11px;color:var(--green);font-weight:500;margin:6px 0 3px;}
+.browse{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;background:var(--s2);border:1px solid var(--bdr2);border-radius:6px;font-size:11px;font-weight:500;color:var(--txt);cursor:pointer;}
+.browse:hover{background:var(--s3);}
+.cmap{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px;text-align:left;}
+.cmap label{font-size:9px;color:var(--muted);display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px;}
+.cmap select{width:100%;padding:5px 7px;background:var(--s2);border:1px solid var(--bdr2);border-radius:5px;font-size:11px;color:var(--txt);outline:none;color-scheme:dark;}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;margin-bottom:1rem;}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(3,1fr);}}
+.stat{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:.85rem 1rem;}
+.stat .sl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:3px;}
+.stat .sv{font-size:20px;font-weight:700;letter-spacing:-.5px;line-height:1.1;}
+.stat .ss{font-size:10px;color:var(--muted2);margin-top:2px;}
+.pnl-card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:1rem;}
+.res-card{background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;}
+.res-hdr{padding:.8rem 1.1rem;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.tabs{display:flex;gap:3px;background:var(--s2);border-radius:6px;padding:3px;}
+.tab{padding:4px 11px;border-radius:4px;font-size:11px;font-weight:500;cursor:pointer;color:var(--muted);border:none;background:transparent;}
+.tab.active{background:var(--s3);color:var(--txt);}
+.srch{padding:5px 9px;background:var(--s2);border:1px solid var(--bdr2);border-radius:5px;font-size:11px;color:var(--txt);outline:none;width:160px;color-scheme:dark;}
+.srch::placeholder{color:var(--muted);}
+.exp-btn{margin-left:auto;padding:5px 11px;background:var(--s2);border:1px solid var(--bdr2);border-radius:5px;font-size:11px;color:var(--muted2);cursor:pointer;}
+.exp-btn:hover{color:var(--txt);}
+tbody tr.rm td:first-child{border-left:2px solid var(--green);}
+tbody tr.ri td:first-child{border-left:2px solid var(--red);}
+tbody tr.re td:first-child{border-left:2px solid var(--purple);}
+.mono{font-family:monospace;font-size:10px;}
+.pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap;}
+.pm{background:var(--green-bg);color:var(--green);border:1px solid var(--green-dim);}
+.pi{background:var(--red-bg);color:var(--red);border:1px solid var(--red-dim);}
+.pe{background:var(--purple-bg);color:var(--purple);}
+.pill-match{background:rgba(34,197,94,.1);color:var(--green);border:1px solid var(--green-dim);}
+.pill-break{background:rgba(239,68,68,.1);color:var(--red);border:1px solid var(--red-dim);}
+.dim{color:var(--muted2);}
+.num-pos{color:var(--green);}.num-neg{color:var(--red);}
+.pgn{display:flex;align-items:center;gap:5px;padding:8px 11px;border-top:1px solid var(--bdr);font-size:11px;color:var(--muted);}
+.pgn button{padding:3px 9px;background:var(--s2);border:1px solid var(--bdr2);border-radius:4px;font-size:10px;color:var(--muted);cursor:pointer;}
+.pgn button:hover:not(:disabled){color:var(--txt);}
+.pgn button:disabled{opacity:.3;cursor:not-allowed;}
+.empty{text-align:center;padding:2.5rem;color:var(--muted);}
+.toast{position:fixed;bottom:18px;right:18px;background:var(--s2);border:1px solid var(--bdr2);color:var(--txt);padding:9px 15px;border-radius:8px;font-size:12px;font-weight:500;z-index:999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;}
+.toast.show{opacity:1;transform:none;}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:5px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 20 20"><path d="M3 5h14M3 10h14M3 15h8"/></svg></div>
+    <div class="logo-txt">Trade<b>Recon</b></div>
+  </div>
+  <div class="hdr-mid">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
+      <button class="nav-tab" onclick="showPage('upload',this)">📁 Reconciliation</button>
+      <button class="nav-tab" onclick="showPage('plreports',this)">📑 P&amp;L Reports</button>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="date-pill">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <input type="date" id="gDate" onchange="S.td=this.value"/>
+    </div>
+    <button class="btn" onclick="resetAll()">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3"/></svg>Reset
+    </button>
+    <button class="btn btn-run" id="runBtn" onclick="runRecon()" disabled>
+      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>Run Reconciliation
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="sec">Dashboard</div>
+  <div id="loadingBar" style="display:none;align-items:center;gap:8px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:7px;padding:8px 14px;margin-bottom:1rem;font-size:12px;color:var(--blue);">
+    <span class="spin" style="border-top-color:var(--blue);border-color:rgba(59,130,246,.2);"></span>
+    Loading reports from database…
+  </div>
+  <div id="savingInfo" class="saving-bar" style="display:none;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    ✅ Connected to Supabase — reports save permanently. Your whole team can access from any device.
+  </div>
+
+  <!-- OVERALL SUMMARY STATS -->
+  <div class="stats-row" id="overallStats" style="display:none;"></div>
+
+  <!-- OVERALL PNL CHART -->
+  <div id="overallCharts" style="display:none;margin-bottom:1rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:.75rem;">Daily P&L (Exchange vs Internal)</div>
+        <canvas id="pnlChart" height="180"></canvas>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--bdr);border-radius:var(--r);padding:1rem;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:.75rem;">Daily Trade Matching</div>
+        <canvas id="matchChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-controls">
+    <div style="display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--bdr2);border-radius:var(--r);padding:10px 16px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span style="font-size:11px;color:var(--muted2);font-weight:500;">Select Date</span>
+      <input type="date" id="dashDate" onchange="loadDashboard(this.value)" style="background:transparent;border:none;outline:none;color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;color-scheme:dark;"/>
+    </div>
+    <button class="btn" onclick="loadFromStorage()">🔄 Refresh</button>
+    <button class="btn" onclick="clearAll()" style="color:var(--red);">🗑 Clear All</button>
+  </div>
+
+  <div id="reportCount" style="font-size:11px;color:var(--muted);margin-bottom:.75rem;"></div>
+
+  <div id="dashDetail" style="display:none;">
+    <div class="sec" id="dashDetailTitle">Report Detail</div>
+    <div class="dash-stats" id="dashStats"></div>
+    <div class="brk-grid">
+      <div class="bpanel"><div class="bpanel-hdr"><span class="dot"></span>Top P&amp;L Breaks</div><div id="dashBrkPnl"></div></div>
+      <div class="bpanel"><div class="bpanel-hdr"><span class="dot"></span>Top Position Breaks</div><div id="dashBrkPos"></div></div>
+    </div>
+    <div class="net-bar">
+      <div><div class="nl">Net P&amp;L Difference (Exchange – Internal)</div></div>
+      <div style="display:flex;align-items:center;">
+        <span class="nv" id="dashNetPnl">—</span>
+        <span class="nb" id="dashNetBreaks"></span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
+      <div class="sec" style="margin-bottom:0;flex:1;">P&amp;L by Symbol</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="exportDashPnl('csv')" style="color:var(--green);border-color:var(--green);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn" onclick="exportDashPnl('xlsx')" style="color:var(--blue);border-color:var(--blue);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export XLSX
+        </button>
+      </div>
+    </div>
+    <div class="pnl-card"><div class="tw"><table>
+      <thead>
+        <tr>
+          <th rowspan="2">Symbol</th>
+          <th colspan="5" class="center" style="border-left:1px solid var(--bdr2);color:var(--blue);">🏦 Exchange</th>
+          <th colspan="5" class="center" style="border-left:1px solid var(--bdr2);color:var(--purple);">🖥️ Internal</th>
+          <th rowspan="2" style="border-left:1px solid var(--bdr2);">P&amp;L Diff</th>
+          <th rowspan="2">Status</th>
+        </tr>
+        <tr class="sub-hdr">
+          <th style="border-left:1px solid var(--bdr2);">Buy Qty</th><th>Sell Qty</th><th>Buy Val($)</th><th>Sell Val($)</th><th>PnL($)</th>
+          <th style="border-left:1px solid var(--bdr2);">Buy Qty</th><th>Sell Qty</th><th>Buy Val($)</th><th>Sell Val($)</th><th>PnL($)</th>
+        </tr>
+      </thead>
+      <tbody id="dashPnlBody"></tbody>
+    </table></div></div>
+    <div class="sec">Reconciliation Detail</div>
+    <div class="res-card">
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Status</th><th>Order ID</th><th>Symbol</th><th>Side</th>
+          <th>Qty Exc</th><th>Price Exc</th><th>Val Exc</th><th>Login</th>
+          <th>Qty Int</th><th>Price Int</th><th>Val Int</th><th>Source</th><th>TradeID</th>
+        </tr></thead>
+        <tbody id="dashReconBody"></tbody>
+      </table></div>
+      <div class="pgn" id="dashPgn"></div>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="page" id="page-upload">
+  <div class="sec">Upload Trade Files</div>
+  <div class="up-grid">
+    <div class="up-card" id="cardA" ondragover="drag(event,'A')" ondragleave="undrag('A')" ondrop="drop(event,'A')">
+      <input type="file" id="fileA" accept=".csv,.txt,.xls,.xlsx" onchange="handleFile(event,'A')"/>
+      <div id="promptA">
+        <div class="up-icon">🏦</div>
+        <div><span class="up-badge b-exc">Exchange</span></div>
+        <div class="up-title">Exchange Trade File</div>
+        <div class="up-sub">MM_Trades — buy_sell, fill_quantity, fill_price, lot_size</div>
+        <span class="browse" onclick="document.getElementById('fileA').click()">📁 Browse file</span>
+      </div>
+      <div id="doneA" style="display:none;">
+        <div class="up-icon">🏦</div>
+        <div><span class="up-badge b-exc">Exchange</span></div>
+        <div class="up-title">Exchange Trade File</div>
+        <div class="up-ok" id="okA"></div>
+        <div class="cmap">
+          <div><label>Order ID</label><select id="eOrd" onchange="checkReady()"></select></div>
+          <div><label>Symbol</label><select id="eSym"></select></div>
+          <div><label>Buy/Sell (0=B 1=S)</label><select id="eSide"></select></div>
+          <div><label>Fill Qty</label><select id="eQty"></select></div>
+          <div><label>Fill Price</label><select id="ePrc"></select></div>
+          <div><label>Lot Size</label><select id="eLot"><option value="">— none —</option></select></div>
+          <div><label>Login</label><select id="eLogin"></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="up-card" id="cardB" ondragover="drag(event,'B')" ondragleave="undrag('B')" ondrop="drop(event,'B')">
+      <input type="file" id="fileB" accept=".csv,.txt,.xls,.xlsx" onchange="handleFile(event,'B')"/>
+      <div id="promptB">
+        <div class="up-icon">🖥️</div>
+        <div><span class="up-badge b-int">Internal</span></div>
+        <div class="up-title">Internal Trade File</div>
+        <div class="up-sub">Exchange-Trade CSV — Pair, Side, TradeQuantity, TradePrice</div>
+        <span class="browse" onclick="document.getElementById('fileB').click()">📁 Browse file</span>
+      </div>
+      <div id="doneB" style="display:none;">
+        <div class="up-icon">🖥️</div>
+        <div><span class="up-badge b-int">Internal</span></div>
+        <div class="up-title">Internal Trade File</div>
+        <div class="up-ok" id="okB"></div>
+        <div class="cmap">
+          <div><label>Order ID</label><select id="iOrd" onchange="checkReady()"></select></div>
+          <div><label>Symbol/Pair</label><select id="iSym"></select></div>
+          <div><label>Side</label><select id="iSide"></select></div>
+          <div><label>Trade Qty</label><select id="iQty"></select></div>
+          <div><label>Trade Price</label><select id="iPrc"></select></div>
+          <div><label>Source</label><select id="iSrc"></select></div>
+          <div><label>Trade ID</label><select id="iTid"></select></div>
+          <div><label>Trade Type</label><select id="iTyp"><option value="">— none —</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sec2" style="display:none;">
+    <div class="stats-row">
+      <div class="stat"><div class="sl">Trade Date</div><div class="sv c-blue" id="stDate">—</div><div class="ss">FIFO reconciliation</div></div>
+      <div class="stat"><div class="sl">Exc Trades</div><div class="sv c-txt" id="stExc">0</div><div class="ss" id="stExcSub"></div></div>
+      <div class="stat"><div class="sl">Int Trades</div><div class="sv c-txt" id="stInt">0</div><div class="ss" id="stIntSub"></div></div>
+      <div class="stat"><div class="sl">Exchange P&amp;L</div><div class="sv" id="stExcPnl">—</div><div class="ss">Realized FIFO</div></div>
+      <div class="stat"><div class="sl">Internal P&amp;L</div><div class="sv" id="stIntPnl">—</div><div class="ss">Realized FIFO</div></div>
+    </div>
+    <div class="brk-grid">
+      <div class="bpanel"><div class="bpanel-hdr"><span class="dot"></span>Top P&amp;L Breaks</div><div id="bPnl"></div></div>
+      <div class="bpanel"><div class="bpanel-hdr"><span class="dot"></span>Top Position Breaks</div><div id="bPos"></div></div>
+    </div>
+    <div class="net-bar">
+      <div><div class="nl">Net P&amp;L Difference (Exchange – Internal)</div></div>
+      <div style="display:flex;align-items:center;">
+        <span class="nv" id="netPnl">—</span>
+        <span class="nb" id="netBreaks"></span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px;">
+      <div class="sec" style="margin-bottom:0;flex:1;">P&amp;L by Symbol</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="exportPnlReport('csv')" style="color:var(--green);border-color:var(--green);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn" onclick="exportPnlReport('xlsx')" style="color:var(--blue);border-color:var(--blue);">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export XLSX
+        </button>
+        <button class="btn btn-green" onclick="saveReport()">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save to Dashboard
+        </button>
+      </div>
+    </div>
+    <div class="pnl-card"><div class="tw"><table>
+      <thead>
+        <tr>
+          <th rowspan="2">Symbol</th>
+          <th colspan="5" class="center" style="border-left:1px solid var(--bdr2);color:var(--blue);">🏦 Exchange</th>
+          <th colspan="5" class="center" style="border-left:1px solid var(--bdr2);color:var(--purple);">🖥️ Internal</th>
+          <th rowspan="2" style="border-left:1px solid var(--bdr2);">P&amp;L Diff</th>
+          <th rowspan="2">Status</th>
+        </tr>
+        <tr class="sub-hdr">
+          <th style="border-left:1px solid var(--bdr2);">Buy Qty</th><th>Sell Qty</th><th>Buy Val($)</th><th>Sell Val($)</th><th>PnL($)</th>
+          <th style="border-left:1px solid var(--bdr2);">Buy Qty</th><th>Sell Qty</th><th>Buy Val($)</th><th>Sell Val($)</th><th>PnL($)</th>
+        </tr>
+      </thead>
+      <tbody id="pnlBody"></tbody>
+    </table></div></div>
+    <div class="sec">Reconciliation Detail</div>
+    <div class="res-card">
+      <div class="res-hdr">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('all',this)">All</button>
+          <button class="tab" onclick="switchTab('matched',this)">Matched</button>
+          <button class="tab" onclick="switchTab('miss_int',this)">miss_int</button>
+          <button class="tab" onclick="switchTab('miss_exc',this)">miss_exc</button>
+        </div>
+        <input class="srch" id="srch" placeholder="Search order ID or symbol…" oninput="renderTable()"/>
+        <button class="exp-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Status</th><th>Order ID</th><th>Symbol</th><th>Side</th>
+          <th>Qty Exc</th><th>Price Exc</th><th>Val Exc</th><th>Login</th>
+          <th>Qty Int</th><th>Price Int</th><th>Val Int</th><th>Source</th><th>TradeID</th><th>Type</th>
+        </tr></thead>
+        <tbody id="tBody"></tbody>
+      </table></div>
+      <div class="pgn" id="pgn"></div>
+    </div>
+  </div>
+</div>
+<!-- P&L REPORTS PAGE -->
+<div class="page" id="page-plreports">
+  <div class="sec">P&amp;L Reports</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+    <span id="plReportCount" style="font-size:11px;color:var(--muted);"></span>
+    <button class="btn" onclick="loadPlReports()">🔄 Refresh</button>
+  </div>
+
+  <div class="hist-card">
+    <div class="hist-hdr">
+      <span class="hist-title">Exported P&amp;L Reports</span>
+      <span style="font-size:11px;color:var(--muted);">Click any row to download</span>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Symbols</th>
+          <th>Exc P&amp;L</th>
+          <th>Int P&amp;L</th>
+          <th>Net P&amp;L</th>
+          <th>Exported At</th>
+          <th>Download</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody id="plReportBody"><tr><td colspan="8" class="empty">No P&amp;L reports exported yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</main>
+<div class="toast"
+ id="toast"></div>
+
+<script>
+const S={dataA:[],dataB:[],results:[],pnlData:[],td:'',
+  tab:'all',sk:'status',sd:1,pg:1,ps:100,dashPg:1,currentReport:null};
+
+// ── SUPABASE PERSISTENT STORAGE ──
+const SB_URL='https://wzotlwxhnzlbsnhpfbvq.supabase.co';
+const SB_KEY='sb_publishable__iTHME8WgnTgw5mfOaoCvQ_hAdoEZNm';
+let REPORTS=[];
+
+async function sbFetch(method, path, body){
+  const opts={method,headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'resolution=merge-duplicates','Accept':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const res=await fetch(SB_URL+path,opts);
+  if(!res.ok) throw new Error(await res.text());
+  const txt=await res.text();
+  return txt?JSON.parse(txt):null;
+}
+
+function showLoader(show){
+  document.getElementById('loadingBar').style.display=show?'flex':'none';
+}
+
+async function loadFromStorage(){
+  showLoader(true);
+  try{
+    const data=await sbFetch('GET','/rest/v1/traderecon_reports?select=trade_date,report_data,saved_at&order=trade_date.desc',null);
+    if(Array.isArray(data)){
+      REPORTS=data.map(function(r){
+        const d=r.report_data;
+        d.date=r.trade_date;
+        d.savedAt=r.saved_at;
+        return d;
+      });
+    }
+  }catch(e){
+    console.warn('Supabase load failed, using localStorage',e);
+    try{const d=localStorage.getItem('traderecon_reports');if(d)REPORTS=JSON.parse(d);}catch(e2){}
+  }
+  showLoader(false);
+  renderHistory();
+  document.getElementById('savingInfo').style.display='flex';
+}
+
+async function saveToStorage(){
+  if(!REPORTS.length) return false;
+  const latest=REPORTS[0];
+  try{
+    await sbFetch('POST','/rest/v1/traderecon_reports',{trade_date:latest.date,report_data:latest,saved_at:new Date().toISOString()});
+    localStorage.setItem('traderecon_reports',JSON.stringify(REPORTS));
+    return true;
+  }catch(e){
+    console.warn('Supabase save failed',e);
+    localStorage.setItem('traderecon_reports',JSON.stringify(REPORTS));
+    return false;
+  }
+}
+
+function toast(m,d=3000){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),d);}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  if(name==='dashboard') renderHistory();
+  if(name==='plreports') loadPlReports();
+}
+
+function drag(e,f){e.preventDefault();document.getElementById('card'+f).classList.add('dragover');}
+function undrag(f){document.getElementById('card'+f).classList.remove('dragover');}
+function drop(e,f){e.preventDefault();undrag(f);const fi=e.dataTransfer.files[0];if(fi)processFile(fi,f);}
+function handleFile(e,f){const fi=e.target.files[0];if(fi)processFile(fi,f);}
+
+function processFile(file,f){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(['xlsx','xls'].includes(ext)){
+    const r=new FileReader();
+    r.onload=ev=>{try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+      applyData(f,rows,Object.keys(rows[0]||{}),file.name);
+    }catch{toast('Cannot read Excel.');}};
+    r.readAsArrayBuffer(file);
+  } else if(['csv','txt'].includes(ext)){
+    Papa.parse(file,{header:true,skipEmptyLines:true,
+      complete:r=>applyData(f,r.data,r.meta.fields||[],file.name),
+      error:()=>toast('Cannot parse CSV.')});
+  } else toast('Use CSV, Excel or TXT.');
+}
+
+const EMAPS={eOrd:/order.?id/i,eSym:/^symbol$|display_symbol|trading_symbol/i,eSide:/buy.?sell/i,eQty:/fill.?quan/i,ePrc:/fill.?price/i,eLot:/lot.?size/i,eLogin:/login.?id|^login$/i};
+const IMAPS={iOrd:/order.?id/i,iSym:/^pair$|^symbol$/i,iSide:/^side$/i,iQty:/trade.?quan|^quantity$/i,iPrc:/trade.?price/i,iSrc:/^exchange$/i,iTid:/^tradeid$/i,iTyp:/tradetype/i};
+
+function applyData(f,rows,cols,name){
+  if(f==='A'){S.dataA=rows;autoMap('A',cols);}
+  else{S.dataB=rows;autoMap('B',cols);}
+  document.getElementById('prompt'+f).style.display='none';
+  document.getElementById('done'+f).style.display='block';
+  document.getElementById('card'+f).classList.add('ready');
+  document.getElementById('ok'+f).textContent=`✓ ${name}  (${rows.length.toLocaleString()} rows)`;
+  checkReady();
+  toast(`Loaded: ${rows.length.toLocaleString()} rows`);
+}
+
+function autoMap(f,cols){
+  const maps=f==='A'?EMAPS:IMAPS;
+  for(const[id,rx] of Object.entries(maps)){
+    const sel=document.getElementById(id);if(!sel)continue;
+    const hasNone=sel.options.length&&sel.options[0].value==='';
+    sel.innerHTML=(hasNone?'<option value="">— none —</option>':'')+cols.map(c=>`<option value="${c}">${c}</option>`).join('');
+    const m=cols.find(c=>rx.test(c));if(m)sel.value=m;
+  }
+}
+
+function checkReady(){
+  document.getElementById('runBtn').disabled=!(S.dataA.length&&S.dataB.length&&document.getElementById('eOrd').value&&document.getElementById('iOrd').value);
+}
+
+function nId(v){let s=String(v??'').trim();if(/^\d+\.0+$/.test(s))s=s.replace(/\.0+$/,'');return s;}
+function nNum(v){const n=parseFloat(v);return isNaN(n)?null:n;}
+function fmtN(v,d=3){return v==null?'<span class="dim">—</span>':Number(v).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:d});}
+function fmtPnl(v){const s=v>=0?'+':'-';return `${s}$${Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;}
+function pnlCls(v){return v>0?'num-pos':v<0?'num-neg':'';}
+
+function runRecon(){
+  const btn=document.getElementById('runBtn');
+  btn.innerHTML='<span class="spin"></span>Running…';btn.disabled=true;
+  setTimeout(()=>{try{_recon();}catch(e){toast('Error: '+e.message);console.error(e);}
+    btn.innerHTML='<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>Run Reconciliation';
+    btn.disabled=false;},30);
+}
+
+function _recon(){
+  const c={
+    eOrd:document.getElementById('eOrd').value,eSym:document.getElementById('eSym').value,
+    eSide:document.getElementById('eSide').value,eQty:document.getElementById('eQty').value,
+    ePrc:document.getElementById('ePrc').value,eLot:document.getElementById('eLot').value,
+    eLogin:document.getElementById('eLogin').value,
+    iOrd:document.getElementById('iOrd').value,iSym:document.getElementById('iSym').value,
+    iSide:document.getElementById('iSide').value,iQty:document.getElementById('iQty').value,
+    iPrc:document.getElementById('iPrc').value,iSrc:document.getElementById('iSrc').value,
+    iTid:document.getElementById('iTid').value,iTyp:document.getElementById('iTyp').value,
+  };
+
+  const excRows=S.dataA.map(r=>{
+    const qty=nNum(r[c.eQty]),lot=c.eLot?nNum(r[c.eLot]):1,price=nNum(r[c.ePrc]);
+    const qA=qty!=null&&lot!=null?Math.round(qty*lot*1e8)/1e8:null;
+    const rawSide=r[c.eSide];
+    const sideMM=typeof rawSide==='number'?(rawSide===0?'BUY':'SELL'):String(rawSide||'').trim().toUpperCase();
+    const sideExc=sideMM==='BUY'?'SELL':'BUY';
+    const tval=nNum(r['exchange_time'])||nNum(r['oms_entry_time'])||0;
+    return{oid:nId(r[c.eOrd]),sym:String(r[c.eSym]||'').trim(),side:sideMM,sideExc,qty:qA,price,
+      val:qA!=null&&price!=null?Math.round(qA*price*1e6)/1e6:null,
+      login:String(r[c.eLogin]||'').trim(),tval};
+  }).filter(r=>r.oid).sort((a,b)=>a.tval-b.tval);
+
+  const intRows=S.dataB.map(r=>({
+    oid:nId(r[c.iOrd]),sym:String(r[c.iSym]||'').trim(),
+    side:String(r[c.iSide]||'').trim().toUpperCase(),
+    qty:nNum(r[c.iQty])!=null?Math.abs(Math.round(nNum(r[c.iQty])*1e8)/1e8):null,
+    rawQty:nNum(r[c.iQty]),price:nNum(r[c.iPrc]),val:null,
+    src:String(r[c.iSrc]||'').trim(),tid:String(r[c.iTid]||'').trim(),
+    type:c.iTyp?String(r[c.iTyp]||'').trim():'',
+    tval:String(r['Trade_Time_IST']||r['createdAt']||''),
+  })).filter(r=>r.oid&&r.type!=='DELTA_FUTURE')
+    .sort((a,b)=>a.tval<b.tval?-1:a.tval>b.tval?1:0);
+  intRows.forEach(r=>{if(r.val==null&&r.qty!=null&&r.price!=null)r.val=Math.round(r.qty*r.price*1e6)/1e6;});
+
+  const excBySym={},intBySym={};
+  excRows.forEach(r=>{(excBySym[r.sym]=excBySym[r.sym]||[]).push(r);});
+  intRows.forEach(r=>{(intBySym[r.sym]=intBySym[r.sym]||[]).push(r);});
+  const allSyms=[...new Set([...Object.keys(excBySym),...Object.keys(intBySym)])].sort();
+
+  let totalExcPnl=0,totalIntPnl=0;
+  const pnlRows=[],pnlMap={};
+
+  allSyms.forEach(sym=>{
+    const eList=excBySym[sym]||[]; const iList=intBySym[sym]||[];
+    let bqE=0,sqE=0,bvE=0,svE=0;
+    eList.forEach(r=>{
+      if(r.qty==null||r.price==null)return;
+      if(r.sideExc==='BUY'){bqE+=r.qty;bvE+=r.qty*r.price;}
+      else{sqE+=r.qty;svE+=r.qty*r.price;}
+    });
+    const markE=eList.length>0?(eList[eList.length-1].price||0):0;
+    const openE=Math.round((bqE-sqE)*1e8)/1e8;
+    const pnlE=Math.round((svE-bvE+(openE!==0?openE*markE:0))*100)/100;
+
+    let bqI=0,sqI=0,bvI=0,svI=0;
+    iList.forEach(r=>{
+      if(r.qty==null||r.price==null)return;
+      if(r.side==='BUY'){bqI+=r.qty;bvI+=r.qty*r.price;}
+      else{sqI+=r.qty;svI+=r.qty*r.price;}
+    });
+    const markI=iList.length>0?(iList[iList.length-1].price||0):0;
+    const openI=Math.round((bqI-sqI)*1e8)/1e8;
+    const pnlI=Math.round((svI-bvI+(openI!==0?openI*markI:0))*100)/100;
+
+    const diff=Math.round((pnlE-pnlI)*100)/100;
+    const row={sym,bqE:Math.round(bqE*1e4)/1e4,sqE:Math.round(sqE*1e4)/1e4,
+      bvE:Math.round(bvE*100)/100,svE:Math.round(svE*100)/100,pnlE,openE,markE,
+      bqI:Math.round(bqI*1e4)/1e4,sqI:Math.round(sqI*1e4)/1e4,
+      bvI:Math.round(bvI*100)/100,svI:Math.round(svI*100)/100,pnlI,openI,markI,
+      diff,status:Math.abs(diff)<0.01?'Match':'Break'};
+    pnlRows.push(row);pnlMap[sym]=row;
+    totalExcPnl+=pnlE;totalIntPnl+=pnlI;
+  });
+  S.pnlData=pnlRows;
+
+  const mapE=new Map(),mapI=new Map();
+  excRows.forEach(r=>{(mapE.get(r.oid)||mapE.set(r.oid,[]).get(r.oid)).push(r);});
+  intRows.forEach(r=>{(mapI.get(r.oid)||mapI.set(r.oid,[]).get(r.oid)).push(r);});
+  const allIds=new Set([...mapE.keys(),...mapI.keys()]);
+  const results=[];
+  allIds.forEach(oid=>{
+    const eL=[...(mapE.get(oid)||[])],iL=[...(mapI.get(oid)||[])];
+    const used=new Array(iL.length).fill(false);
+    for(const e of eL){
+      let mi=-1;
+      for(let j=0;j<iL.length;j++){
+        if(used[j])continue;const iv=iL[j];
+        if(e.qty!=null&&iv.qty!=null&&Math.abs(e.qty-iv.qty)<1e-6&&
+           e.price!=null&&iv.price!=null&&Math.abs(e.price-iv.price)<1e-4){mi=j;break;}
+      }
+      if(mi!==-1){used[mi]=true;const iv=iL[mi];
+        results.push({status:'matched',orderId:oid,symbol:e.sym||iv.sym,side:e.side||iv.side,
+          qE:e.qty,pE:e.price,vE:e.val,loginE:e.login,
+          qI:iv.qty,pI:iv.price,vI:iv.val,srcI:iv.src,tidI:iv.tid,typeI:iv.type});
+      } else {
+        results.push({status:'miss_int',orderId:oid,symbol:e.sym,side:e.side,
+          qE:e.qty,pE:e.price,vE:e.val,loginE:e.login,
+          qI:null,pI:null,vI:null,srcI:null,tidI:null,typeI:null});
+      }
+    }
+    iL.forEach((iv,j)=>{if(!used[j])results.push({status:'miss_exc',orderId:oid,symbol:iv.sym,side:iv.side,
+      qE:null,pE:null,vE:null,loginE:null,
+      qI:iv.qty,pI:iv.price,vI:iv.val,srcI:iv.src,tidI:iv.tid,typeI:iv.type});});
+  });
+  S.results=results;S.tab='all';S.pg=1;
+
+  const matched=results.filter(r=>r.status==='matched').length;
+  const missInt=results.filter(r=>r.status==='miss_int').length;
+  const missExc=results.filter(r=>r.status==='miss_exc').length;
+  const excSyms=new Set(excRows.map(r=>r.sym)).size;
+  const intSyms=new Set(intRows.map(r=>r.sym)).size;
+
+  document.getElementById('stDate').textContent=S.td||'—';
+  document.getElementById('stExc').textContent=excRows.length.toLocaleString();
+  document.getElementById('stExcSub').textContent=`${excSyms} symbols`;
+  document.getElementById('stInt').textContent=intRows.length.toLocaleString();
+  document.getElementById('stIntSub').textContent=`${intSyms} symbols`;
+
+  const ep=document.getElementById('stExcPnl');ep.textContent=fmtPnl(totalExcPnl);ep.className='sv '+(totalExcPnl>=0?'c-green':'c-red');
+  const ip=document.getElementById('stIntPnl');ip.textContent=fmtPnl(totalIntPnl);ip.className='sv '+(totalIntPnl>=0?'c-green':'c-red');
+
+  const sortedPnl=[...pnlRows].filter(r=>r.diff!=null).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+  document.getElementById('bPnl').innerHTML=sortedPnl.slice(0,6).map(r=>`
+    <div class="brow"><span class="bsym">${r.sym}</span>
+    <span class="bvals">
+      <span>Exc:<span class="${pnlCls(r.pnlE)}">${fmtPnl(r.pnlE)}</span></span>
+      <span>Int:<span class="${pnlCls(r.pnlI)}">${fmtPnl(r.pnlI)}</span></span>
+      <span class="dv">Δ${fmtPnl(r.diff)}</span>
+    </span></div>`).join('');
+
+  const posSorted=[...pnlRows].filter(r=>Math.abs(r.openE+r.openI)>1e-6)
+    .sort((a,b)=>Math.abs(b.openE+b.openI)-Math.abs(a.openE+a.openI));
+  document.getElementById('bPos').innerHTML=posSorted.length?posSorted.slice(0,6).map(r=>`
+    <div class="brow"><span class="bsym">${r.sym}</span>
+    <span class="bvals">
+      <span>Exc:<b>${r.openE.toFixed(4)}</b></span>
+      <span>Int:<b>${r.openI.toFixed(4)}</b></span>
+      <span class="dv">Δ${(r.openE+r.openI>=0?'+':'')}${(r.openE+r.openI).toFixed(4)}</span>
+    </span></div>`).join(''):'<div class="brow"><span style="color:var(--green)">No position breaks ✓</span></div>';
+
+  const netD=totalExcPnl-totalIntPnl;
+  const nEl=document.getElementById('netPnl');nEl.textContent=fmtPnl(netD);nEl.className='nv '+(netD>=0?'c-green':'c-red');
+  document.getElementById('netBreaks').textContent=`${pnlRows.filter(r=>r.status==='Break').length} symbol breaks`;
+
+  document.getElementById('pnlBody').innerHTML=pnlRows.map(r=>`<tr>
+    <td><b>${r.sym}</b></td>
+    <td style="border-left:1px solid var(--bdr2);">${fmtN(r.bqE,4)}</td><td>${fmtN(r.sqE,4)}</td>
+    <td>$${r.bvE.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td>$${r.svE.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="${pnlCls(r.pnlE)}" style="font-weight:600;">${fmtPnl(r.pnlE)}</td>
+    <td style="border-left:1px solid var(--bdr2);">${fmtN(r.bqI,4)}</td><td>${fmtN(r.sqI,4)}</td>
+    <td>$${r.bvI.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td>$${r.svI.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="${pnlCls(r.pnlI)}" style="font-weight:600;">${fmtPnl(r.pnlI)}</td>
+    <td style="border-left:1px solid var(--bdr2);font-weight:700;" class="${pnlCls(r.diff)}">${fmtPnl(r.diff)}</td>
+    <td><span class="${r.status==='Match'?'pill-match':'pill-break'} pill">${r.status==='Match'?'✓ Match':'✗ Break'}</span></td>
+  </tr>`).join('');
+
+  document.getElementById('sec2').style.display='block';
+  renderTable();
+  toast(`Done — ${matched.toLocaleString()} matched · ${(missInt+missExc).toLocaleString()} breaks`);
+  document.getElementById('sec2').scrollIntoView({behavior:'smooth',block:'start'});
+
+  S._summary={
+    date:S.td||new Date().toISOString().slice(0,10),
+    excTrades:excRows.length,intTrades:intRows.length,
+    matched,missInt,missExc,excSyms,intSyms,
+    totalExcPnl:Math.round(totalExcPnl*100)/100,
+    totalIntPnl:Math.round(totalIntPnl*100)/100,
+    netPnl:Math.round(netD*100)/100,
+    pnlRows,results,
+    savedAt:new Date().toISOString()
+  };
+}
+
+async function saveReport(){
+  if(!S._summary){toast('Run reconciliation first.');return;}
+  const idx=REPORTS.findIndex(r=>r.date===S._summary.date);
+  if(idx>=0) REPORTS[idx]=S._summary;
+  else REPORTS.unshift(S._summary);
+  await saveToStorage();
+  renderHistory();
+  document.getElementById('savingInfo').style.display='flex';
+  const ok=await saveToStorage();
+  toast(ok?'✓ Saved to Supabase! Team can see it now.':'✓ Saved locally (database unavailable)');
+  showPage('dashboard',document.querySelector('.nav-tab'));
+  loadDashboard(S._summary.date);
+}
+
+let pnlChartInst=null, matchChartInst=null;
+
+function renderHistory(){
+  const tbody=document.getElementById('histBody');
+  document.getElementById('reportCount').textContent=`${REPORTS.length} report${REPORTS.length!==1?'s':''} saved`;
+
+  if(!REPORTS.length){
+    tbody.innerHTML='<tr><td colspan="11" class="empty">No reports yet. Run reconciliation and save.</td></tr>';
+    document.getElementById('overallStats').style.display='none';
+    document.getElementById('overallCharts').style.display='none';
+    return;
+  }
+
+  // Overall summary stats
+  const totalExcPnl=REPORTS.reduce((a,r)=>a+(r.totalExcPnl||0),0);
+  const totalIntPnl=REPORTS.reduce((a,r)=>a+(r.totalIntPnl||0),0);
+  const totalMatched=REPORTS.reduce((a,r)=>a+(r.matched||0),0);
+  const totalUnmatched=REPORTS.reduce((a,r)=>a+(r.missInt||0)+(r.missExc||0),0);
+  const totalExcTrades=REPORTS.reduce((a,r)=>a+(r.excTrades||0),0);
+  const totalIntTrades=REPORTS.reduce((a,r)=>a+(r.intTrades||0),0);
+  const netPnl=totalExcPnl-totalIntPnl;
+  const matchRate=totalMatched/(totalMatched+totalUnmatched)*100;
+
+  document.getElementById('overallStats').style.display='grid';
+  document.getElementById('overallStats').innerHTML=`
+    <div class="overall-stat"><div class="ol">Total Reports</div><div class="ov c-blue">${REPORTS.length}</div><div class="os">Date range: ${REPORTS[REPORTS.length-1]?.date} → ${REPORTS[0]?.date}</div></div>
+    <div class="overall-stat"><div class="ol">Total Exc Trades</div><div class="ov c-txt">${totalExcTrades.toLocaleString()}</div></div>
+    <div class="overall-stat"><div class="ol">Total Int Trades</div><div class="ov c-txt">${totalIntTrades.toLocaleString()}</div></div>
+    <div class="overall-stat"><div class="ol">Total Matched</div><div class="ov c-green">${totalMatched.toLocaleString()}</div><div class="os">Match rate: ${matchRate.toFixed(1)}%</div></div>
+    <div class="overall-stat"><div class="ol">Total Unmatched</div><div class="ov c-red">${totalUnmatched.toLocaleString()}</div></div>
+    <div class="overall-stat"><div class="ol">Total Exc P&L</div><div class="ov ${totalExcPnl>=0?'c-green':'c-red'}">${fmtPnl(totalExcPnl)}</div></div>
+    <div class="overall-stat"><div class="ol">Total Int P&L</div><div class="ov ${totalIntPnl>=0?'c-green':'c-red'}">${fmtPnl(totalIntPnl)}</div></div>`;
+
+  // Charts
+  document.getElementById('overallCharts').style.display='block';
+  const sorted=[...REPORTS].sort((a,b)=>a.date>b.date?1:-1);
+  const labels=sorted.map(r=>r.date);
+  const excPnls=sorted.map(r=>r.totalExcPnl||0);
+  const intPnls=sorted.map(r=>r.totalIntPnl||0);
+  const matched=sorted.map(r=>r.matched||0);
+  const unmatched=sorted.map(r=>(r.missInt||0)+(r.missExc||0));
+
+  const chartDefaults={color:'#7a86a4',borderColor:'#252d42',backgroundColor:'transparent'};
+  Chart.defaults.color='#7a86a4';
+
+  if(pnlChartInst) pnlChartInst.destroy();
+  pnlChartInst=new Chart(document.getElementById('pnlChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Exc P&L',data:excPnls,backgroundColor:excPnls.map(v=>v>=0?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)'),borderRadius:3},
+      {label:'Int P&L',data:intPnls,backgroundColor:intPnls.map(v=>v>=0?'rgba(59,130,246,.6)':'rgba(249,115,22,.6)'),borderRadius:3}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:'#7a86a4',font:{size:11}}}},scales:{x:{ticks:{color:'#5a6480',font:{size:10}},grid:{color:'#252d42'}},y:{ticks:{color:'#5a6480',font:{size:10},callback:v=>'$'+v.toLocaleString()},grid:{color:'#252d42'}}}}
+  });
+
+  if(matchChartInst) matchChartInst.destroy();
+  matchChartInst=new Chart(document.getElementById('matchChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Matched',data:matched,backgroundColor:'rgba(34,197,94,.6)',borderRadius:3},
+      {label:'Unmatched',data:unmatched,backgroundColor:'rgba(239,68,68,.6)',borderRadius:3}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:'#7a86a4',font:{size:11}}}},scales:{x:{ticks:{color:'#5a6480',font:{size:10}},grid:{color:'#252d42'}},y:{ticks:{color:'#5a6480',font:{size:10}},grid:{color:'#252d42'}}}}
+  });
+
+  document.getElementById('reportCount').textContent=REPORTS.length+' reports saved — select a date above to view details';
+}
+
+function loadDashboard(date){
+  if(!date){document.getElementById('dashDetail').style.display='none';return;}
+  document.getElementById('dashDate').value=date;
+  const r=REPORTS.find(rep=>rep.date===date);
+  if(!r){toast(`No report for ${date}`);document.getElementById('dashDetail').style.display='none';return;}
+
+  S.currentReport=r; S.dashPg=1;
+  document.getElementById('dashDetailTitle').textContent=`Report — ${date}`;
+  document.getElementById('dashDetail').style.display='block';
+
+  document.getElementById('dashStats').innerHTML=`
+    <div class="dstat"><div class="dl">Trade Date</div><div class="dv c-blue">${r.date}</div></div>
+    <div class="dstat"><div class="dl">Exc Trades</div><div class="dv c-txt">${(r.excTrades||0).toLocaleString()}</div><div class="ds">${r.excSyms||0} symbols</div></div>
+    <div class="dstat"><div class="dl">Int Trades</div><div class="dv c-txt">${(r.intTrades||0).toLocaleString()}</div><div class="ds">${r.intSyms||0} symbols</div></div>
+    <div class="dstat"><div class="dl">Matched</div><div class="dv c-green">${(r.matched||0).toLocaleString()}</div></div>
+    <div class="dstat"><div class="dl">Unmatched</div><div class="dv c-red">${((r.missInt||0)+(r.missExc||0)).toLocaleString()}</div></div>
+    <div class="dstat"><div class="dl">Exchange P&amp;L</div><div class="dv ${r.totalExcPnl>=0?'c-green':'c-red'}">${fmtPnl(r.totalExcPnl||0)}</div><div class="ds">Realized FIFO</div></div>
+    <div class="dstat"><div class="dl">Internal P&amp;L</div><div class="dv ${r.totalIntPnl>=0?'c-green':'c-red'}">${fmtPnl(r.totalIntPnl||0)}</div><div class="ds">Realized FIFO</div></div>`;
+
+  const pnlRows=r.pnlRows||[];
+  const sortedPnl=[...pnlRows].filter(x=>x.diff!=null).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+  document.getElementById('dashBrkPnl').innerHTML=sortedPnl.slice(0,6).map(p=>`
+    <div class="brow"><span class="bsym">${p.sym}</span>
+    <span class="bvals">
+      <span>Exc:<span class="${pnlCls(p.pnlE)}">${fmtPnl(p.pnlE)}</span></span>
+      <span>Int:<span class="${pnlCls(p.pnlI)}">${fmtPnl(p.pnlI)}</span></span>
+      <span class="dv">Δ${fmtPnl(p.diff)}</span>
+    </span></div>`).join('')||'<div class="brow"><span class="dim">No data</span></div>';
+
+  const posSorted=[...pnlRows].filter(x=>Math.abs(x.openE+x.openI)>1e-6)
+    .sort((a,b)=>Math.abs(b.openE+b.openI)-Math.abs(a.openE+a.openI));
+  document.getElementById('dashBrkPos').innerHTML=posSorted.slice(0,6).map(p=>`
+    <div class="brow"><span class="bsym">${p.sym}</span>
+    <span class="bvals">
+      <span>Exc:<b>${p.openE.toFixed(4)}</b></span>
+      <span>Int:<b>${p.openI.toFixed(4)}</b></span>
+      <span class="dv">Δ${(p.openE+p.openI>=0?'+':'')}${(p.openE+p.openI).toFixed(4)}</span>
+    </span></div>`).join('')||'<div class="brow"><span style="color:var(--green)">No position breaks ✓</span></div>';
+
+  const netEl=document.getElementById('dashNetPnl');
+  netEl.textContent=fmtPnl(r.netPnl||0);netEl.className='nv '+(r.netPnl>=0?'c-green':'c-red');
+  document.getElementById('dashNetBreaks').textContent=`${pnlRows.filter(x=>x.status==='Break').length} symbol breaks`;
+
+  document.getElementById('dashPnlBody').innerHTML=pnlRows.map(p=>`<tr>
+    <td><b>${p.sym}</b></td>
+    <td style="border-left:1px solid var(--bdr2);">${fmtN(p.bqE,4)}</td><td>${fmtN(p.sqE,4)}</td>
+    <td>$${(p.bvE||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td>$${(p.svE||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="${pnlCls(p.pnlE)}" style="font-weight:600;">${fmtPnl(p.pnlE)}</td>
+    <td style="border-left:1px solid var(--bdr2);">${fmtN(p.bqI,4)}</td><td>${fmtN(p.sqI,4)}</td>
+    <td>$${(p.bvI||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td>$${(p.svI||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="${pnlCls(p.pnlI)}" style="font-weight:600;">${fmtPnl(p.pnlI)}</td>
+    <td style="border-left:1px solid var(--bdr2);font-weight:700;" class="${pnlCls(p.diff)}">${fmtPnl(p.diff)}</td>
+    <td><span class="${p.status==='Match'?'pill-match':'pill-break'} pill">${p.status==='Match'?'✓ Match':'✗ Break'}</span></td>
+  </tr>`).join('');
+
+  renderDashRecon(r.results||[]);
+  document.getElementById('dashDetail').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderDashRecon(rows){
+  const total=rows.length,pages=Math.ceil(total/S.ps)||1;
+  if(S.dashPg>pages)S.dashPg=1;
+  const slice=rows.slice((S.dashPg-1)*S.ps,S.dashPg*S.ps);
+  const tb=document.getElementById('dashReconBody');
+  if(!slice.length){tb.innerHTML=`<tr><td colspan="13" class="empty">No data.</td></tr>`;return;}
+  tb.innerHTML=slice.map(r=>{
+    const pill=r.status==='matched'?'<span class="pill pm">✓</span>':r.status==='miss_int'?'<span class="pill pi">✗ mi</span>':'<span class="pill pe">✗ me</span>';
+    const cls=r.status==='matched'?'rm':r.status==='miss_int'?'ri':'re';
+    return `<tr class="${cls}">
+      <td>${pill}</td><td class="mono">${r.orderId}</td><td>${r.symbol||'—'}</td><td>${r.side||'—'}</td>
+      <td>${fmtN(r.qE)}</td><td>${fmtN(r.pE)}</td><td>${fmtN(r.vE)}</td>
+      <td class="dim">${r.loginE||'—'}</td>
+      <td>${fmtN(r.qI)}</td><td>${fmtN(r.pI)}</td><td>${fmtN(r.vI)}</td>
+      <td class="dim">${r.srcI||'—'}</td><td class="mono dim" style="font-size:10px;">${r.tidI||'—'}</td>
+    </tr>`;
+  }).join('');
+  const pgn=document.getElementById('dashPgn');
+  const allRows=S.currentReport?.results||[];
+  pgn.innerHTML=pages<=1?`<span>${total.toLocaleString()} rows</span>`
+    :`<span style="margin-right:auto;">${total.toLocaleString()} rows</span>
+      <button onclick="S.dashPg--;renderDashRecon(S.currentReport.results)" ${S.dashPg<=1?'disabled':''}>‹ Prev</button>
+      <span>Page ${S.dashPg}/${pages}</span>
+      <button onclick="S.dashPg++;renderDashRecon(S.currentReport.results)" ${S.dashPg>=pages?'disabled':''}>Next ›</button>`;
+}
+
+async function deleteReport(date){
+  if(!confirm(`Delete report for ${date}?`))return;
+  REPORTS=REPORTS.filter(r=>r.date!==date);
+  try{await sbFetch('DELETE','/rest/v1/traderecon_reports?trade_date=eq.'+date,null);}catch(e){}
+  localStorage.setItem('traderecon_reports',JSON.stringify(REPORTS));
+  renderHistory();
+  if(S.currentReport?.date===date)document.getElementById('dashDetail').style.display='none';
+  toast(`Deleted report for ${date}`);
+}
+
+async function clearAll(){
+  if(!confirm('Delete ALL saved reports?'))return;
+  REPORTS=[];
+  try{await sbFetch('DELETE','/rest/v1/traderecon_reports?id=gt.0',null);}catch(e){}
+  try{localStorage.removeItem('traderecon_reports');}catch(e){}
+  renderHistory();
+  document.getElementById('dashDetail').style.display='none';
+  toast('All reports cleared');
+}
+
+function exportReports(){
+  if(!REPORTS.length){toast('No reports to export.');return;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(REPORTS,null,2)],{type:'application/json'}));
+  a.download='traderecon_reports.json';a.click();
+  toast('✓ Save this file to your OneDrive → NEW PL REPORT folder');
+}
+
+function importReports(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw new Error();
+      REPORTS=data;
+      await saveToStorage();
+      renderHistory();
+      document.getElementById('savingInfo').style.display='flex';
+      toast(`✓ Loaded ${data.length} report(s)`);
+      document.getElementById('importFile').value='';
+    }catch{toast('Invalid file.');}
+  };
+  reader.readAsText(file);
+}
+
+function getFiltered(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  let rows=[...S.results];
+  if(S.tab!=='all')rows=rows.filter(r=>r.status===S.tab);
+  if(q)rows=rows.filter(r=>(r.orderId+r.symbol).toLowerCase().includes(q));
+  rows.sort((a,b)=>{const va=a[S.sk]??'',vb=b[S.sk]??'';return va<vb?-S.sd:va>vb?S.sd:0;});
+  return rows;
+}
+
+function renderTable(){
+  const rows=getFiltered(),total=rows.length,pages=Math.ceil(total/S.ps)||1;
+  if(S.pg>pages)S.pg=1;
+  const slice=rows.slice((S.pg-1)*S.ps,S.pg*S.ps);
+  const tb=document.getElementById('tBody');
+  if(!slice.length){tb.innerHTML=`<tr><td colspan="14" class="empty">No rows.</td></tr>`;return;}
+  tb.innerHTML=slice.map(r=>{
+    const pill=r.status==='matched'?'<span class="pill pm">✓ matched</span>':r.status==='miss_int'?'<span class="pill pi">✗ miss_int</span>':'<span class="pill pe">✗ miss_exc</span>';
+    const cls=r.status==='matched'?'rm':r.status==='miss_int'?'ri':'re';
+    return `<tr class="${cls}">
+      <td>${pill}</td><td class="mono">${r.orderId}</td><td>${r.symbol||'—'}</td><td>${r.side||'—'}</td>
+      <td>${fmtN(r.qE)}</td><td>${fmtN(r.pE)}</td><td>${fmtN(r.vE)}</td>
+      <td class="dim">${r.loginE||'—'}</td>
+      <td>${fmtN(r.qI)}</td><td>${fmtN(r.pI)}</td><td>${fmtN(r.vI)}</td>
+      <td class="dim">${r.srcI||'—'}</td><td class="mono dim" style="font-size:10px;">${r.tidI||'—'}</td><td class="dim">${r.typeI||'—'}</td>
+    </tr>`;
+  }).join('');
+  const pgn=document.getElementById('pgn');
+  pgn.innerHTML=pages<=1?`<span>${total.toLocaleString()} rows</span>`
+    :`<span style="margin-right:auto;">${total.toLocaleString()} rows</span>
+      <button onclick="goPage(${S.pg-1})" ${S.pg<=1?'disabled':''}>‹ Prev</button>
+      <span>Page ${S.pg}/${pages}</span>
+      <button onclick="goPage(${S.pg+1})" ${S.pg>=pages?'disabled':''}>Next ›</button>`;
+}
+
+function goPage(p){S.pg=p;renderTable();}
+function switchTab(t,el){S.tab=t;S.pg=1;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');renderTable();}
+function sortBy(k){if(S.sk===k)S.sd*=-1;else{S.sk=k;S.sd=1;}renderTable();}
+
+function exportCSV(){
+  const rows=getFiltered();
+  const hdr=['Status','OrderID','Symbol','Side','Qty_Exc','Price_Exc','Val_Exc','Login_Exc','Qty_Int','Price_Int','Val_Int','Source_Int','TradeID_Int','Type_Int'];
+  const lines=rows.map(r=>[r.status,r.orderId,r.symbol,r.side,r.qE??'',r.pE??'',r.vE??'',r.loginE??'',r.qI??'',r.pI??'',r.vI??'',r.srcI??'',r.tidI??'',r.typeI??''].join(','));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([[hdr.join(','),...lines].join('\n')],{type:'text/csv'}));
+  a.download=`traderecon_mis_${S.td||'output'}.csv`;a.click();toast('Exported');
+}
+
+function resetAll(){
+  S.dataA=[];S.dataB=[];S.results=[];S.pnlData=[];S.td='';S._summary=null;
+  ['A','B'].forEach(f=>{
+    document.getElementById('prompt'+f).style.display='block';
+    document.getElementById('done'+f).style.display='none';
+    document.getElementById('card'+f).classList.remove('ready','dragover');
+    document.getElementById('file'+f).value='';
+  });
+  document.getElementById('gDate').value='';
+  document.getElementById('runBtn').disabled=true;
+  document.getElementById('sec2').style.display='none';
+  toast('Reset');
+}
+
+// Export from dashboard view (uses currently loaded report)
+async function exportDashPnl(fmt){
+  if(!S.currentReport||!S.currentReport.pnlRows||!S.currentReport.pnlRows.length){
+    toast('Select a date first.');return;
+  }
+  const date=S.currentReport.date;
+  const rows=S.currentReport.pnlRows;
+
+  // Save to P&L Reports
+  const reportMeta={
+    trade_date:date,
+    symbol_count:rows.length,
+    exc_pnl:rows.reduce((a,r)=>a+(r.pnlE||0),0),
+    int_pnl:rows.reduce((a,r)=>a+(r.pnlI||0),0),
+    net_pnl:rows.reduce((a,r)=>a+(r.diff||0),0),
+    report_data:rows,
+    exported_at:new Date().toISOString()
+  };
+  try{await sbFetch('POST','/rest/v1/traderecon_pl_reports',reportMeta);}catch(e){}
+  const existing=JSON.parse(localStorage.getItem(PL_KEY)||'[]');
+  const idx=existing.findIndex(r=>r.trade_date===date);
+  if(idx>=0) existing[idx]=reportMeta; else existing.unshift(reportMeta);
+  localStorage.setItem(PL_KEY,JSON.stringify(existing));
+
+  downloadPlReport(date,fmt,rows);
+  toast(`✓ Exported & saved to P&L Reports tab`);
+}
+
+// ── P&L REPORT EXPORT & STORAGE ──
+let PL_REPORTS=[];
+const PL_KEY='traderecon_pl_reports';
+
+async function loadPlReports(){
+  try{
+    const data=await sbFetch('GET','/rest/v1/traderecon_pl_reports?select=*&order=trade_date.desc',null);
+    if(Array.isArray(data)) PL_REPORTS=data;
+  }catch(e){
+    try{const d=localStorage.getItem(PL_KEY);if(d)PL_REPORTS=JSON.parse(d);}catch(e2){}
+  }
+  renderPlReports();
+}
+
+function renderPlReports(){
+  const tbody=document.getElementById('plReportBody');
+  if(!tbody) return;
+  document.getElementById('plReportCount').textContent=PL_REPORTS.length+' reports exported';
+  if(!PL_REPORTS.length){
+    tbody.innerHTML='<tr><td colspan="8" class="empty">No P&L reports exported yet. Go to Reconciliation → Export CSV/XLSX.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=PL_REPORTS.map(r=>`<tr>
+    <td><b>${r.trade_date}</b></td>
+    <td>${r.symbol_count||0} symbols</td>
+    <td class="${(r.exc_pnl||0)>=0?'c-green':'c-red'}">${fmtPnl(r.exc_pnl||0)}</td>
+    <td class="${(r.int_pnl||0)>=0?'c-green':'c-red'}">${fmtPnl(r.int_pnl||0)}</td>
+    <td class="${(r.net_pnl||0)>=0?'c-green':'c-red'}" style="font-weight:700;">${fmtPnl(r.net_pnl||0)}</td>
+    <td class="dim">${new Date(r.exported_at).toLocaleString()}</td>
+    <td style="display:flex;gap:6px;">
+      <button onclick="downloadPlReport('${r.trade_date}','csv')" style="padding:4px 10px;background:var(--green-bg);border:1px solid var(--green-dim);color:var(--green);border-radius:5px;font-size:10px;cursor:pointer;">CSV</button>
+      <button onclick="downloadPlReport('${r.trade_date}','xlsx')" style="padding:4px 10px;background:var(--blue-bg);border:1px solid var(--bdr2);color:var(--blue);border-radius:5px;font-size:10px;cursor:pointer;">XLSX</button>
+    </td>
+    <td><button onclick="deletePlReport('${r.trade_date}')" style="padding:4px 8px;background:var(--red-bg);border:1px solid var(--red-dim);color:var(--red);border-radius:5px;font-size:10px;cursor:pointer;">Delete</button></td>
+  </tr>`).join('');
+}
+
+async function exportPnlReport(fmt){
+  if(!S.pnlData||!S.pnlData.length){toast('Run reconciliation first.');return;}
+  const date=S.td||new Date().toISOString().slice(0,10);
+
+  // Save to Supabase pl reports table
+  const reportMeta={
+    trade_date:date,
+    symbol_count:S.pnlData.length,
+    exc_pnl:S.pnlData.reduce((a,r)=>a+(r.pnlE||0),0),
+    int_pnl:S.pnlData.reduce((a,r)=>a+(r.pnlI||0),0),
+    net_pnl:S.pnlData.reduce((a,r)=>a+(r.diff||0),0),
+    report_data:S.pnlData,
+    exported_at:new Date().toISOString()
+  };
+
+  try{
+    await sbFetch('POST','/rest/v1/traderecon_pl_reports',reportMeta);
+    // also localStorage
+    const existing=JSON.parse(localStorage.getItem(PL_KEY)||'[]');
+    const idx=existing.findIndex(r=>r.trade_date===date);
+    if(idx>=0) existing[idx]=reportMeta; else existing.unshift(reportMeta);
+    localStorage.setItem(PL_KEY,JSON.stringify(existing));
+    toast('✓ P&L report saved! View in P&L Reports tab.');
+  }catch(e){
+    // save locally only
+    const existing=JSON.parse(localStorage.getItem(PL_KEY)||'[]');
+    const idx=existing.findIndex(r=>r.trade_date===date);
+    if(idx>=0) existing[idx]=reportMeta; else existing.unshift(reportMeta);
+    localStorage.setItem(PL_KEY,JSON.stringify(existing));
+    toast('✓ Saved locally. Fix Supabase key for team access.');
+  }
+
+  // Download the file
+  downloadPlReport(date, fmt, S.pnlData);
+}
+
+function downloadPlReport(date, fmt, data){
+  // Get data from memory or storage
+  let rows=data;
+  if(!rows){
+    const local=JSON.parse(localStorage.getItem(PL_KEY)||'[]');
+    const found=local.find(r=>r.trade_date===date);
+    if(found) rows=found.report_data;
+  }
+  if(!rows){toast('Data not found. Please re-export.');return;}
+
+  if(fmt==='csv'){
+    const hdr=['Symbol','BuyQty_Exc','SellQty_Exc','BuyVal_Exc($)','SellVal_Exc($)','RealizedPnL_Exc($)','OpenPos_Exc','AvgCost_Exc($)','BuyQty_Int','SellQty_Int','BuyVal_Int($)','SellVal_Int($)','RealizedPnL_Int($)','OpenPos_Int','AvgCost_Int($)','PnL_Diff($)','Status'];
+    const lines=rows.map(r=>[r.sym,r.bqE,r.sqE,r.bvE,r.svE,r.pnlE,r.openE,r.markE,r.bqI,r.sqI,r.bvI,r.svI,r.pnlI,r.openI,r.markI,r.diff,r.status].join(','));
+    const csv=[hdr.join(','),...lines].join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download=`traderecon_pnl_${date}.csv`;
+    a.click();
+    toast(`Downloaded traderecon_pnl_${date}.csv`);
+  } else {
+    // XLSX
+    const wsData=[
+      ['Symbol','BuyQty Exc','SellQty Exc','BuyVal Exc($)','SellVal Exc($)','PnL Exc($)','OpenPos Exc','AvgCost Exc','BuyQty Int','SellQty Int','BuyVal Int($)','SellVal Int($)','PnL Int($)','OpenPos Int','AvgCost Int','PnL Diff($)','Status'],
+      ...rows.map(r=>[r.sym,r.bqE,r.sqE,r.bvE,r.svE,r.pnlE,r.openE,r.markE,r.bqI,r.sqI,r.bvI,r.svI,r.pnlI,r.openI,r.markI,r.diff,r.status])
+    ];
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    // Column widths
+    ws['!cols']=[{wch:12},{wch:10},{wch:10},{wch:14},{wch:14},{wch:14},{wch:10},{wch:12},{wch:10},{wch:10},{wch:14},{wch:14},{wch:14},{wch:10},{wch:12},{wch:12},{wch:8}];
+    XLSX.utils.book_append_sheet(wb,ws,`PnL_${date}`);
+    XLSX.writeFile(wb,`traderecon_pnl_${date}.xlsx`);
+    toast(`Downloaded traderecon_pnl_${date}.xlsx`);
+  }
+}
+
+async function deletePlReport(date){
+  if(!confirm('Delete P&L report for '+date+'?')) return;
+  try{await sbFetch('DELETE','/rest/v1/traderecon_pl_reports?trade_date=eq.'+date,null);}catch(e){}
+  const local=JSON.parse(localStorage.getItem(PL_KEY)||'[]').filter(r=>r.trade_date!==date);
+  localStorage.setItem(PL_KEY,JSON.stringify(local));
+  await loadPlReports();
+  toast('Deleted P&L report for '+date);
+}
+
+// ── INIT ──
+loadFromStorage();
+</script>
+</body>
+</html>
